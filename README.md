@@ -2,6 +2,10 @@
 
 Forecast solar PV power output from historical generation and meteorological data (irradiance, temperature, cloud cover). Use proper time-series splits, train LightGBM/Prophet and optional LSTM, beat persistence and seasonal-naive baselines, and deliver an alert-capable dashboard for grid operators
 
+**Live dashboard:** https://solarpowerpredictions.streamlit.app/
+
+(It's on Streamlit's free tier, so if nobody has opened it for a few days it takes about a minute to wake up.)
+
 ## Overview
 
 This project focuses on **short-term solar power forecasting** using time-series modeling and machine learning techniques. The goal is to build a **reliable, leakage-free forecasting pipeline** that can predict photovoltaic (PV) power generation at **30-minute intervals** using historical and engineered features.
