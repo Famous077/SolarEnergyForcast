@@ -1,0 +1,26 @@
+# Data: the raw files are large and the app only reads data/processed
+data/raw/
+
+# Built locally, not part of the project
+ojt_colab.zip
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+*.log
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets: never commit these to a public repo
+.env
+.streamlit/secrets.toml
+
+# Editor and OS clutter
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*

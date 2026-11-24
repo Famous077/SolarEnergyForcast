@@ -1,0 +1,13 @@
+site,horizon_h,alert,events,alerts,TP,FP,FN,precision,recall,F1
+primary,1,ramp,27,11,0,11,27,0.0,0.0,
+primary,1,low_output,105,64,45,19,60,0.70312,0.42857,0.53254
+primary,1,low_confidence,159,101,41,60,118,0.40594,0.25786,0.31538
+primary,24,ramp,27,0,0,0,27,,0.0,
+primary,24,low_output,105,0,0,0,105,,0.0,
+primary,24,low_confidence,161,283,62,221,99,0.21908,0.38509,0.27928
+site_a,1,ramp,55,36,10,26,45,0.27778,0.18182,0.21978
+site_a,1,low_output,170,121,85,36,85,0.70248,0.5,0.58419
+site_a,1,low_confidence,120,226,63,163,57,0.27876,0.525,0.36416
+site_a,24,ramp,55,4,2,2,53,0.5,0.03636,0.0678
+site_a,24,low_output,170,7,2,5,168,0.28571,0.01176,0.0226
+site_a,24,low_confidence,77,172,37,135,40,0.21512,0.48052,0.29719

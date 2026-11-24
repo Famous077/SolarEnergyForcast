@@ -1,0 +1,50 @@
+site,rule,rows
+primary,duplicate timestamps dropped,0
+primary,"humidity_pct outside [0, 100] clipped",3783
+primary,"ghi outside [0, 1400] clipped",7
+primary,"dhi outside [0, 800] clipped",0
+primary,"gti outside [0, 1400] clipped",0
+primary,"dti outside [0, 800] clipped",0
+primary,"temp_c outside [-10, 50] clipped",0
+primary,"wind_dir outside [0, 360] -> NaN",1014
+primary,hourly power_kw: <80% coverage -> NaN,5992
+primary,hourly temp_c: <80% coverage -> NaN,5474
+primary,hourly humidity_pct: <80% coverage -> NaN,5472
+primary,hourly ghi: <80% coverage -> NaN,5469
+primary,hourly dhi: <80% coverage -> NaN,5469
+primary,hourly wind_dir: <80% coverage -> NaN,5446
+primary,hourly gti: <80% coverage -> NaN,5691
+primary,hourly dti: <80% coverage -> NaN,5691
+primary,hourly rain_mm: <80% coverage -> NaN,6136
+primary,night power > 1% capacity -> 0,0
+primary,night GHI > 5 W/m2 -> 0,121
+primary,power > 1.05 x capacity -> NaN,0
+primary,flag: GHI > 1.1 x clear-sky (kept),191
+primary,flag: daytime flatline >= 3 h (kept),0
+primary,power_kw: short gaps interpolated,3267
+primary,temp_c: short gaps interpolated,3085
+primary,humidity_pct: short gaps interpolated,3084
+primary,ghi: short gaps interpolated,3081
+primary,dhi: short gaps interpolated,3081
+primary,wind_dir: short gaps interpolated,3068
+primary,gti: short gaps interpolated,3153
+primary,dti: short gaps interpolated,3153
+primary,rain_mm: short gaps interpolated,3081
+primary,capacity used (kW),18
+site_a,missing hourly rows inserted,0
+site_a,power -> NaN during inverter fault,13
+site_a,night power > 1% capacity -> 0,0
+site_a,night GHI > 5 W/m2 -> 0,0
+site_a,power > 1.05 x capacity -> NaN,0
+site_a,flag: GHI > 1.1 x clear-sky (kept),0
+site_a,flag: daytime flatline >= 3 h (kept),0
+site_a,power_kw: short gaps interpolated,13
+site_a,temp_c: short gaps interpolated,6
+site_a,humidity_pct: short gaps interpolated,6
+site_a,cloud_cover_pct: short gaps interpolated,6
+site_a,wind_speed_kmh: short gaps interpolated,6
+site_a,ghi: short gaps interpolated,6
+site_a,dni: short gaps interpolated,6
+site_a,dhi: short gaps interpolated,6
+site_a,rain_mm: short gaps interpolated,6
+site_a,capacity used (kW),55

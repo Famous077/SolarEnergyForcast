@@ -1,0 +1,11 @@
+# Only what the dashboard needs. The full research setup is in ../requirements.txt.
+streamlit==1.45.1
+pandas==2.2.3
+numpy==2.1.3
+plotly==5.24.1
+lightgbm==4.7.0
+scikit-learn==1.6.1
+joblib==1.4.2
+shap==0.54.1
+pvlib==0.16.1
+matplotlib==3.10.0
