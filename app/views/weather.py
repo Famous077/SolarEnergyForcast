@@ -1,14 +1,14 @@
 import streamlit as st
 
 from components.charts import driver_chart, weather_chart
-from components.ui import note, tile
+from components.ui import banner, note, tile
 from services import driver_sentence
 
 ctx = st.session_state.ctx
 hist, tz, fc = ctx["history"], ctx["tz"], ctx["fc"]
 now = hist.iloc[-1]
 
-st.title("Weather and what drives the forecast")
+banner("banner-weather.webp", "Weather and what drives the forecast", "Measured conditions at the plant, and the reasons behind each hour's forecast")
 note("All weather here is <b>measured</b>, up to now. The model is not fed a weather forecast, "
      "so it can't see a cloud front before it reaches the plant.")
 

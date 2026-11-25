@@ -3,303 +3,527 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Solar Forecast Desk</title>
-<meta name="description" content="Short-term solar PV forecasts with a likely range and operator alerts. OJT project, LightGBM on two real plants.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='7' fill='%23f0a830'/></svg>">
+<title>SolarCast</title>
+<meta name="description" content="Short-term solar power forecasts with a likely range and alerts for grid operators, tested on two real plants.">
+<link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0f1722; --panel: #151f2e; --line: #243247; --text: #e6edf3; --muted: #93a3b8; --dim: #6b7c92;
-  --amber: #f0a830; --amber-soft: rgba(240,168,48,.16); --green: #4cb782; --red: #e5675f;
-  --mono: 'JetBrains Mono', ui-monospace, monospace;
-  color-scheme: dark;
+  --paper: #f2f6f9; --card: #ffffff; --ink: #1f2d24; --muted: #5a685c; --dim: #8a9488; --line: #dbe4eb;
+  --sun: #e39b2f; --sun-soft: rgba(227,155,47,.22); --sun-deep: #b8731b;
+  --leaf: #3c7a4c; --leaf-soft: #dcebd9; --sky: #7fa9bd; --sky-soft: #e2edf1; --clay: #b4523a; --clay-soft: #f6e1da;
+  --serif: 'Fraunces', Georgia, serif; --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  color-scheme: light;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, system-ui, sans-serif; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 17px/1.6 'Work Sans', system-ui, sans-serif; }
 a { color: inherit; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
-.hero > *, .two > *, .facts > *, section { min-width: 0; }
-h1, h2 { overflow-wrap: break-word; }
+.two > *, section, .demo > * { min-width: 0; }
+h1, h2, h3 { font-family: var(--serif); font-weight: 600; letter-spacing: -.01em; overflow-wrap: break-word; }
 
-/* top bar */
-header { border-bottom: 1px solid var(--line); }
-.bar { display: flex; align-items: center; gap: 28px; height: 64px; }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; letter-spacing: -.01em; }
-.brand i { width: 12px; height: 12px; border-radius: 50%; background: var(--amber); box-shadow: 0 0 0 4px var(--amber-soft); }
-.bar nav { display: flex; gap: 22px; margin-left: auto; font-size: .92rem; }
-.bar nav a { color: var(--muted); text-decoration: none; }
-.bar nav a:hover { color: var(--text); }
+/* header */
+header { position: sticky; top: 0; z-index: 10; background: rgba(242,246,249,.92); backdrop-filter: blur(6px);
+         border-bottom: 1px solid transparent; transition: border-color .2s; }
+header.scrolled { border-bottom-color: var(--line); }
+.bar { display: flex; align-items: center; gap: 26px; height: 64px; }
+.brand { white-space: nowrap; display: flex; align-items: center; gap: 10px; font-family: var(--serif); font-weight: 600; font-size: 1.3rem; text-decoration: none; }
+.brand img { height: 48px; width: auto; }
+.bar nav { display: flex; gap: 22px; margin-left: auto; font-size: .93rem; }
+.bar nav a { position: relative; padding: 4px 0; color: var(--muted); text-decoration: none; transition: color .2s, transform .2s; }
+.bar nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; border-radius: 2px;
+  background: var(--sun); transform: scaleX(0); transition: transform .25s ease; }
+.bar nav a:hover, .bar nav a:focus-visible { color: var(--ink); transform: translateY(-1px); }
+.bar nav a:hover::after, .bar nav a:focus-visible::after { transform: scaleX(1); }
 
-.btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 6px; font-weight: 600;
-       font-size: .95rem; text-decoration: none; border: 1px solid var(--line); }
-.btn.primary { background: var(--amber); border-color: var(--amber); color: #1a1205; }
-.btn.primary:hover { background: #ffbb45; }
-.btn.ghost:hover { border-color: var(--muted); }
-.btn.small { padding: 7px 13px; font-size: .88rem; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 999px; font-weight: 600;
+       font-size: .96rem; text-decoration: none; border: 1.5px solid var(--ink); cursor: pointer; background: none; color: var(--ink); font-family: inherit; }
+.btn.primary { background: var(--ink); color: var(--paper); }
+.btn.primary:hover { background: #2f4636; }
+.btn.ghost:hover { background: var(--card); }
+.btn.small { padding: 7px 15px; font-size: .88rem; }
 
-/* hero */
-.hero { display: grid; grid-template-columns: 1fr 1.08fr; gap: 56px; align-items: center; padding: 72px 0 64px; }
-.kicker { font-family: var(--mono); font-size: .8rem; color: var(--amber); margin: 0 0 18px; }
-h1 { font-size: 2.55rem; line-height: 1.15; letter-spacing: -.025em; margin: 0 0 20px; font-weight: 700; }
-.lead { color: var(--muted); font-size: 1.07rem; margin: 0 0 28px; max-width: 34em; }
+/* photo hero: the image sits behind a dark green overlay so the text stays readable */
+.photo-hero { position: relative; min-height: min(78vh, 680px); display: flex; align-items: flex-end; color: #fbf7ee;
+  background: #2b3a2e url("assets/hero-solar-fields.webp") center 40% / cover no-repeat; }
+.photo-hero::before { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(20,32,23,.30) 0%, rgba(20,32,23,.55) 45%, rgba(20,32,23,.88) 100%); }
+.photo-hero .wrap { position: relative; width: 100%; padding-top: 80px; padding-bottom: 56px; }
+.hero-text { max-width: 720px; }
+.kicker { font-size: .9rem; color: #f3c477; font-weight: 600; margin: 0 0 14px; }
+h1 { font-size: 3.1rem; line-height: 1.08; margin: 0 0 20px; }
+.lead { color: #dfe4d8; font-size: 1.1rem; margin: 0 0 30px; max-width: 34em; }
 .actions { display: flex; gap: 12px; flex-wrap: wrap; }
-.wake { color: var(--dim); font-size: .84rem; margin-top: 14px; }
+.photo-hero .btn.primary { background: var(--sun); border-color: var(--sun); color: var(--ink); }
+.photo-hero .btn.primary:hover { background: #f0ad48; }
+.photo-hero .btn.ghost { border-color: rgba(251,247,238,.75); color: #fbf7ee; }
+.photo-hero .btn.ghost:hover { background: rgba(251,247,238,.12); }
+.wake { color: #b9c2b3; font-size: .85rem; margin-top: 14px; }
 
-figure { margin: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 18px 14px; }
-figcaption { font-size: .86rem; color: var(--muted); }
-figcaption b { color: var(--text); font-weight: 600; }
-.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .8rem; color: var(--muted); margin: 10px 0 4px; }
-.legend span::before { content: ""; display: inline-block; width: 16px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2px solid; }
-.lg-measured::before { border-color: var(--text) !important; }
-.lg-forecast::before { border-color: var(--amber) !important; }
-.lg-band::before { border-top: 8px solid var(--amber-soft) !important; }
-.lg-actual::before { border-top: 2px dashed var(--muted) !important; }
-.chart { width: 100%; height: auto; display: block; }
-.chart .grid { stroke: var(--line); stroke-width: 1; }
+.section-head { display: grid; grid-template-columns: 1fr 380px; gap: 40px; align-items: end; margin-bottom: 8px; }
+.section-head > * { min-width: 0; }
+.photo { margin: 0; }
+.photo img { display: block; width: 100%; height: auto; border-radius: 12px; }
+.photo figcaption { font-size: .8rem; color: var(--dim); margin-top: 6px; }
+.wide-photo img { aspect-ratio: 16 / 6; object-fit: cover; }
+
+/* demo */
+.demo-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 26px; margin-top: 8px; }
+.demo { display: grid; grid-template-columns: 1fr 290px; gap: 28px; }
+.controls { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+.controls input[type=range] { flex: 1; accent-color: var(--sun); height: 28px; }
+.play { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--ink); background: none; cursor: pointer; display: grid; place-items: center; flex: none; }
+.play svg { width: 14px; height: 14px; fill: var(--ink); }
+.ticks { display: flex; justify-content: space-between; font: 12px var(--mono); color: var(--dim); margin: 0 0 14px 54px; }
+.skyline { width: 100%; height: 86px; display: block; }
+.chartbox { position: relative; }
+.chart { width: 100%; height: auto; display: block; touch-action: pan-y; }
+.chart .grid { stroke: var(--line); }
 .chart .tick { fill: var(--dim); font: 11px var(--mono); }
-.chart .band { fill: var(--amber-soft); }
-.chart .measured { fill: none; stroke: var(--text); stroke-width: 2.4; stroke-linejoin: round; }
-.chart .forecast { fill: none; stroke: var(--amber); stroke-width: 2.4; stroke-linejoin: round; }
-.chart .actual { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 5 4; }
-.chart .dot { fill: var(--amber); }
-.chart .now { stroke: var(--dim); stroke-dasharray: 2 3; }
-.chart .now-label { fill: var(--dim); font: 11px var(--mono); }
-.chart .callout { stroke: var(--red); stroke-width: 1; }
-.chart .callout-text { fill: var(--red); font: 600 11.5px Inter, sans-serif; }
-.verdict { border-top: 1px solid var(--line); margin-top: 10px; padding-top: 12px; font-size: .92rem; color: var(--muted); }
-.verdict b { color: var(--text); font-weight: 600; }
+.chart .clear { fill: var(--sky-soft); stroke: var(--sky); stroke-dasharray: 4 4; stroke-width: 1.2; }
+.chart .band { fill: var(--sun-soft); transition: d .35s; }
+.chart .past { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linejoin: round; }
+.chart .future { fill: none; stroke: var(--ink); stroke-opacity: .45; stroke-width: 1.6; stroke-dasharray: 5 5; }
+.chart .fc { fill: none; stroke: var(--sun-deep); stroke-width: 2.6; stroke-linejoin: round; }
+.chart .now { stroke: var(--ink); stroke-opacity: .5; stroke-dasharray: 2 3; }
+.chart .guide { stroke: var(--muted); stroke-width: 1; }
+.chart .ramp { fill: var(--clay); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--paper); font-size: .82rem; padding: 8px 11px;
+       border-radius: 8px; white-space: nowrap; transform: translate(-50%, -110%); opacity: 0; transition: opacity .12s; line-height: 1.45; }
+.tip b { font-family: var(--mono); font-weight: 500; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); margin-top: 10px; }
+.legend i { display: inline-block; width: 18px; height: 0; vertical-align: middle; margin-right: 6px; border-top: 2.5px solid; }
 
-/* facts strip */
-.facts { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.facts div { padding: 22px 20px; border-left: 1px solid var(--line); }
-.facts div:first-child { border-left: 0; padding-left: 0; }
-.facts strong { display: block; font: 500 1.55rem var(--mono); letter-spacing: -.02em; }
-.facts span { color: var(--muted); font-size: .88rem; }
+.readout { border-left: 1px solid var(--line); padding-left: 26px; display: flex; flex-direction: column; gap: 16px; }
+.clock { font: 500 2.4rem var(--mono); line-height: 1; }
+.sky-label { display: inline-block; font-size: .82rem; font-weight: 600; padding: 3px 11px; border-radius: 999px; margin-top: 8px; }
+.stat span { display: block; font-size: .8rem; color: var(--muted); }
+.stat strong { font: 500 1.35rem var(--mono); }
+.say { font-size: .95rem; color: var(--ink); margin: 0; }
+.chips { display: flex; flex-direction: column; gap: 7px; }
+.chip { font-size: .84rem; padding: 7px 11px; border-radius: 8px; display: flex; gap: 8px; align-items: baseline; animation: pop .25s ease-out; }
+.chip b { font-weight: 600; }
+.chip.ramp { background: var(--clay-soft); color: #7d2e1c; }
+.chip.low { background: #f7ead0; color: #7a4f10; }
+.chip.unsure { background: var(--sky-soft); color: #2d5466; }
+.chip.none { background: var(--leaf-soft); color: #24502f; }
+@keyframes pop { from { opacity: 0; transform: translateY(4px); } }
+
+/* facts */
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 56px; }
+.facts div { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
+.facts strong { display: block; font: 600 2rem var(--serif); color: var(--leaf); }
+.facts span { color: var(--muted); font-size: .9rem; }
 
 /* sections */
-section { padding: 72px 0 8px; }
-h2 { font-size: 1.6rem; letter-spacing: -.015em; margin: 0 0 12px; }
-.intro { color: var(--muted); max-width: 46em; margin: 0 0 28px; }
+section { padding: 84px 0 0; scroll-margin-top: 70px; }
+h2 { font-size: 2.05rem; margin: 0 0 12px; line-height: 1.15; }
+.intro { color: var(--muted); max-width: 44em; margin: 0 0 28px; }
 
-table { width: 100%; border-collapse: collapse; font-size: .95rem; }
-th, td { padding: 11px 14px; text-align: right; border-bottom: 1px solid var(--line); }
-th:first-child, td:first-child { text-align: left; white-space: nowrap; }
-thead th { font-weight: 500; color: var(--muted); font-size: .82rem; }
-thead tr:first-child th { color: var(--text); font-size: .9rem; font-weight: 600; border-bottom: 0; padding-bottom: 2px; }
-td { font-family: var(--mono); font-size: .9rem; }
-td.ours { color: var(--text); font-weight: 500; }
-td.gain { color: var(--green); }
-td.flat { color: var(--dim); }
-.split { border-left: 1px solid var(--line); }
-.tablenote { color: var(--dim); font-size: .86rem; margin-top: 14px; max-width: 52em; }
-.scroll { overflow-x: auto; }
+.toggle { display: inline-flex; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 4px; margin-bottom: 22px; }
+.toggle button { border: 0; background: none; padding: 8px 18px; border-radius: 999px; font: 500 .92rem 'Work Sans', sans-serif; color: var(--muted); cursor: pointer; }
+.toggle button[aria-pressed=true] { background: var(--ink); color: var(--paper); }
+.bars { display: grid; gap: 14px; }
+.row { display: grid; grid-template-columns: 90px 1fr 90px; gap: 16px; align-items: center; }
+.row .h { font-weight: 600; }
+.pair { display: grid; gap: 5px; }
+.pair div { height: 14px; border-radius: 0 7px 7px 0; transition: width .6s cubic-bezier(.2,.7,.2,1); position: relative; }
+.pair .base { background: #c3cfd8; }
+.pair .ours { background: var(--leaf); }
+.pair small { position: absolute; left: calc(100% + 8px); top: -3px; font: 12px var(--mono); color: var(--muted); white-space: nowrap; }
+.row .gain { font: 500 1rem var(--mono); text-align: right; }
+.gain.good { color: var(--leaf); } .gain.flat { color: var(--dim); }
+.keyline { display: flex; gap: 18px; font-size: .84rem; color: var(--muted); margin-top: 18px; }
+.keyline i { display: inline-block; width: 14px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.note { color: var(--dim); font-size: .9rem; margin-top: 14px; max-width: 50em; }
 
-.two { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; }
-.pages { margin: 0; }
-.pages dt { font-weight: 600; margin-top: 16px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; }
+.pages dt { font-weight: 600; margin-top: 18px; }
 .pages dt:first-child { margin-top: 0; }
-.pages dd { margin: 2px 0 0; color: var(--muted); }
-
+.pages dd { margin: 3px 0 0; color: var(--muted); }
 .limits { list-style: none; margin: 0; padding: 0; }
-.limits li { padding: 16px 0 16px 22px; border-bottom: 1px solid var(--line); position: relative; color: var(--muted); }
-.limits li::before { content: ""; position: absolute; left: 0; top: 25px; width: 8px; height: 8px; border-radius: 2px; background: var(--red); }
-.limits b { color: var(--text); font-weight: 600; }
+.limits li { padding: 15px 0; border-bottom: 1px solid var(--line); color: var(--muted); }
+.limits b { color: var(--ink); }
 
-.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; }
-.steps li { counter-increment: s; padding: 18px 18px 18px 0; border-top: 2px solid var(--line); margin-right: 14px; font-size: .92rem; color: var(--muted); }
-.steps li::before { content: counter(s); display: block; font: 500 .8rem var(--mono); color: var(--amber); margin-bottom: 8px; }
-.steps b { display: block; color: var(--text); font-weight: 600; margin-bottom: 4px; font-size: 1rem; }
-.stack { margin-top: 26px; font-family: var(--mono); font-size: .84rem; color: var(--dim); }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; counter-reset: s; }
+.steps li { counter-increment: s; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; font-size: .93rem; color: var(--muted); }
+.steps li::before { content: counter(s); display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--sun-soft);
+                    color: var(--sun-deep); font: 600 .85rem var(--mono); margin-bottom: 12px; }
+.steps b { display: block; color: var(--ink); margin-bottom: 4px; }
 
-.cta { margin: 80px 0 0; padding: 40px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+details { border-bottom: 1px solid var(--line); }
+summary { cursor: pointer; padding: 18px 0; font-weight: 600; font-size: 1.05rem; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+summary::-webkit-details-marker { display: none; }
+summary::after { content: "+"; font: 400 1.4rem var(--mono); color: var(--sun-deep); line-height: 1; transition: transform .2s; }
+details[open] summary::after { transform: rotate(45deg); }
+details p { margin: 0 0 18px; color: var(--muted); max-width: 46em; }
+
+.cta { margin: 90px 0 0; padding: 56px 44px; border-radius: 16px; color: var(--paper);
+       background: linear-gradient(90deg, rgba(20,32,23,.92), rgba(20,32,23,.72)), #1f2d24 url("assets/panel-rows.webp") center / cover;
        display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; }
-.cta p { margin: 0; color: var(--muted); max-width: 36em; }
-.cta h2 { margin-bottom: 6px; }
+.cta h2 { margin: 0 0 6px; }
+.cta p { margin: 0; color: #c9d1c4; max-width: 34em; }
+.cta .btn { border-color: var(--sun); background: var(--sun); color: var(--ink); }
+.cta .btn:hover { background: #f0ad48; }
 
-footer { border-top: 1px solid var(--line); margin-top: 72px; padding: 28px 0 40px; color: var(--dim); font-size: .88rem; }
-footer .wrap { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
-footer a { color: var(--muted); }
+footer { margin-top: 64px; padding: 26px 0 90px; border-top: 1px solid var(--line); color: var(--dim); font-size: .88rem; }
+footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 
-@media (max-width: 900px) {
-  .hero, .two { grid-template-columns: 1fr; gap: 36px; }
-  .hero { padding-top: 44px; }
-  h1 { font-size: 2rem; }
+.mobile-cta { display: none; }
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s, transform .6s; }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .pair div, .chip { transition: none; animation: none; }
+}
+
+@media (max-width: 960px) {
+  .two, .demo, .section-head { grid-template-columns: 1fr; }
+  .section-head { gap: 18px; }
+  .photo-hero { min-height: 560px; }
+  h1 { font-size: 2.3rem; }
+  .readout { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 20px; }
   .facts { grid-template-columns: 1fr 1fr; }
-  .facts div:nth-child(3) { border-left: 0; padding-left: 0; }
-  .facts div:nth-child(n+3) { border-top: 1px solid var(--line); }
   .steps { grid-template-columns: 1fr 1fr; }
-  .bar nav a.hide-sm { display: none; }
+  .bar nav { display: none; }
+  .bar .btn.small { margin-left: auto; }
 }
 @media (max-width: 560px) {
   .wrap { padding: 0 16px; }
-  .bar { gap: 12px; }
-  .bar nav { display: none; }
-  .bar .btn.small { margin-left: auto; }
-  h1 { font-size: 1.7rem; }
-  .facts strong { font-size: 1.3rem; }
+  body { font-size: 16px; }
+  h1 { font-size: 1.95rem; }
+  h2 { font-size: 1.65rem; }
+  .demo-card { padding: 16px; }
+  .ticks { margin-left: 0; }
   .steps { grid-template-columns: 1fr; }
-  .cta { padding: 26px; }
-  th, td { padding: 9px 8px; }
+  .row { grid-template-columns: 64px 1fr 56px; gap: 10px; }
+  .cta { padding: 28px; }
+  .bar .btn.small { padding: 6px 12px; font-size: .82rem; }
+  .brand { font-size: 1.1rem; } .brand img { height: 40px; }
+  .mobile-cta { display: flex; position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 20; justify-content: center;
+                box-shadow: 0 6px 20px rgba(31,45,36,.25); transform: translateY(140%); transition: transform .3s; }
+  .mobile-cta.show { transform: none; }
 }
 </style>
 </head>
 <body>
 
-<header>
+<header id="top">
   <div class="wrap bar">
-    <a class="brand" href="#"><i></i>Solar Forecast Desk</a>
+    <a class="brand" href="index.html" aria-label="SolarCast home"><img src="assets/logo-mark.png" alt="" width="66" height="48">SolarCast</a>
     <nav>
-      <a class="hide-sm" href="#results">Results</a>
-      <a class="hide-sm" href="#limits">Limits</a>
-      <a class="hide-sm" href="#build">How it's built</a>
-      <a href="https://github.com/Famous077/OJT_Project">Code</a>
+      <a href="#morning">One morning</a>
+      <a href="#results">Results</a>
+      <a href="#limits">Limits</a>
+      <a href="#questions">Questions</a>
     </nav>
     <a class="btn primary small" href="https://solarpowerpredictions.streamlit.app/">Open dashboard</a>
   </div>
 </header>
 
+<div class="photo-hero" role="img" aria-label="Aerial view of a solar farm laid out between farm fields">
+  <div class="wrap">
+    <div class="hero-text">
+      <p class="kicker">Solar forecasting, tested on two real plants</p>
+      <h1>How much power will the panels give in the next six hours, and should the operator worry?</h1>
+      <p class="lead">Solar output can halve in an hour when a cloud bank rolls in. This forecaster looks at what a plant has been
+        producing, where the sun is, and the weather so far. It gives a likely range for the next 1 to 48 hours and warns
+        when output is about to fall.</p>
+      <div class="actions">
+        <a class="btn primary" href="https://solarpowerpredictions.streamlit.app/">Open the dashboard</a>
+        <a class="btn ghost" href="#morning">Watch a cloudy morning ↓</a>
+      </div>
+      <p class="wake">The dashboard runs on free hosting. If nobody has opened it for a few days, give it about a minute to wake up.</p>
+    </div>
+  </div>
+</div>
+
 <main class="wrap">
 
-  <div class="hero">
-    <div>
-      <p class="kicker">OJT project · solar PV forecasting</p>
-      <h1>How much power will the panels give in the next six hours, and should the operator worry?</h1>
-      <p class="lead">We trained forecasting models on two real plants: 26 months from a site near Alice Springs and 18 months
-        from a 55 kW plant on the Black Sea coast. They forecast 1 to 48 hours ahead with a likely range, and they raise an
-        alert when output is about to drop or when the forecast itself looks shaky.</p>
-      <div class="actions">
-        <a class="btn primary" href="https://solarpowerpredictions.streamlit.app/">Open the dashboard →</a>
-        <a class="btn ghost" href="https://github.com/Famous077/OJT_Project">Read the code</a>
+  <section id="morning" style="padding-top:64px">
+    <div class="section-head">
+      <div>
+        <h2>One morning at Site A</h2>
+        <p class="intro">Sunday 22 March 2026, at a 55 kW plant on the Black Sea coast. Grey skies until late morning, then a
+          short burst of sun. The model never saw this day during training. Drag the clock and see what it forecast at each
+          hour, next to what really happened.</p>
       </div>
-      <p class="wake">Hosted on Streamlit's free tier. If nobody has opened it for a few days, it takes about a minute to wake up.</p>
+      <figure class="photo"><img src="assets/solar-under-cloud.webp" width="1200" height="750" loading="lazy"
+        alt="Rows of solar panels in a green field under a grey, overcast sky"></figure>
     </div>
 
-    <figure>
-      <figcaption><b>Site A, Sunday 22 March 2026.</b> A replay from the test period, which the model never saw in training.</figcaption>
-      <div class="legend"><span class="lg-measured">measured</span><span class="lg-forecast">forecast</span><span class="lg-band">likely range</span><span class="lg-actual">what happened</span></div>
-      <svg viewBox="0 0 640 340" role="img" aria-labelledby="chart-title chart-desc" class="chart">
-<title id="chart-title">Site A output on 22 March 2026, forecast made at 11:00</title>
-<desc id="chart-desc">Measured output rose to 46.3 kW at 11:00. The forecast expected a fall to 18.8 kW by 14:00 and raised a sudden-drop alert for 13:00. Actual output was 13.7 kW at 14:00.</desc>
-<line x1="44" x2="624" y1="304.0" y2="304.0" class="grid"/><text x="36" y="308.0" class="tick" text-anchor="end">0</text>
-<line x1="44" x2="624" y1="252.4" y2="252.4" class="grid"/><text x="36" y="256.4" class="tick" text-anchor="end">10</text>
-<line x1="44" x2="624" y1="200.7" y2="200.7" class="grid"/><text x="36" y="204.7" class="tick" text-anchor="end">20</text>
-<line x1="44" x2="624" y1="149.1" y2="149.1" class="grid"/><text x="36" y="153.1" class="tick" text-anchor="end">30</text>
-<line x1="44" x2="624" y1="97.5" y2="97.5" class="grid"/><text x="36" y="101.5" class="tick" text-anchor="end">40</text>
-<line x1="44" x2="624" y1="45.8" y2="45.8" class="grid"/><text x="36" y="49.8" class="tick" text-anchor="end">50</text>
-<text x="44.0" y="328" class="tick" text-anchor="middle">05:00</text>
-<text x="140.7" y="328" class="tick" text-anchor="middle">07:00</text>
-<text x="237.3" y="328" class="tick" text-anchor="middle">09:00</text>
-<text x="334.0" y="328" class="tick" text-anchor="middle">11:00</text>
-<text x="430.7" y="328" class="tick" text-anchor="middle">13:00</text>
-<text x="527.3" y="328" class="tick" text-anchor="middle">15:00</text>
-<text x="624.0" y="328" class="tick" text-anchor="middle">17:00</text>
-<text x="10" y="14" class="tick">kW</text>
-<polygon points="334.0,64.9 382.3,62.3 430.7,76.8 479.0,89.7 527.3,131.5 575.7,180.6 624.0,245.7 624.0,299.4 575.7,284.9 527.3,279.2 479.0,262.7 430.7,246.7 382.3,195.0 334.0,64.9" class="band"/>
-<polyline points="44.0,304.0 92.3,303.0 140.7,288.0 189.0,257.0 237.3,261.7 285.7,231.2 334.0,64.9" class="measured"/>
-<polyline points="334.0,64.9 382.3,121.7 430.7,199.7 479.0,233.3 527.3,250.8 575.7,264.2 624.0,290.6" class="actual"/>
-<polyline points="334.0,64.9 382.3,94.9 430.7,159.4 479.0,206.9 527.3,243.6 575.7,266.3 624.0,290.1" class="forecast"/>
-<circle cx="382.3" cy="94.9" r="3.2" class="dot"/>
-<circle cx="430.7" cy="159.4" r="3.2" class="dot"/>
-<circle cx="479.0" cy="206.9" r="3.2" class="dot"/>
-<circle cx="527.3" cy="243.6" r="3.2" class="dot"/>
-<circle cx="575.7" cy="266.3" r="3.2" class="dot"/>
-<circle cx="624.0" cy="290.1" r="3.2" class="dot"/>
-<line x1="334.0" x2="334.0" y1="20" y2="304" class="now"/><text x="340.0" y="30" class="now-label">forecast made 11:00</text>
-<line x1="430.7" x2="482.7" y1="159.4" y2="95.4" class="callout"/><text x="486.7" y="89.4" class="callout-text">drop alert for 13:00</text>
-</svg>
-      <p class="verdict">At 11:00 the plant was making <b>46.3 kW</b>. The model expected <b>18.8 kW by 14:00</b> and flagged a
-        sudden drop for 13:00. Output was actually <b>13.7 kW</b> at 14:00. It saw the drop coming, though it called it a little late.</p>
-    </figure>
-  </div>
+    <div class="demo-card reveal">
+      <div class="demo">
+        <div>
+          <div class="controls">
+            <button class="play" id="play" aria-label="Play through the morning"><svg viewBox="0 0 10 10" id="playIcon"><path d="M2 1l7 4-7 4z"/></svg></button>
+            <input type="range" id="clock" min="0" max="6" step="1" value="3" aria-label="Forecast made at">
+          </div>
+          <div class="ticks"><span>08:00</span><span>09:00</span><span>10:00</span><span>11:00</span><span>12:00</span><span>13:00</span><span>14:00</span></div>
+          <svg class="skyline" id="sky" viewBox="0 0 640 86" aria-hidden="true"></svg>
+          <div class="chartbox">
+            <svg class="chart" id="chart" viewBox="0 0 640 300" role="img" aria-label="Measured output, forecast and likely range for the selected hour"></svg>
+            <div class="tip" id="tip"></div>
+          </div>
+          <div class="legend">
+            <span><i style="border-color:var(--ink)"></i>measured so far</span>
+            <span><i style="border-color:var(--sun-deep)"></i>forecast</span>
+            <span><i style="border-top:9px solid var(--sun-soft)"></i>likely range</span>
+            <span><i style="border-top:2px dashed var(--ink);opacity:.5"></i>what happened next</span>
+            <span><i style="border-top:9px solid var(--sky-soft)"></i>clear-sky output</span>
+          </div>
+        </div>
+        <aside class="readout" aria-live="polite">
+          <div><span class="stat"><span>Forecast made at</span></span><div class="clock" id="rClock">11:00</div><span class="sky-label" id="rSky">sunny</span></div>
+          <div class="stat"><span>Plant output right then</span><strong id="rNow">46.3 kW</strong></div>
+          <div class="stat"><span>Expected in 3 hours</span><strong id="rNext">18.8 kW</strong></div>
+          <p class="say" id="rSay"></p>
+          <div class="chips" id="rChips"></div>
+        </aside>
+      </div>
+    </div>
 
-  <div class="facts">
-    <div><strong>31,777</strong><span>hours of cleaned data, two plants</span></div>
-    <div><strong>54</strong><span>LightGBM models: 2 plants × 9 horizons × 3 quantiles</span></div>
-    <div><strong>−24 %</strong><span>error vs the best simple rule, Site A at 3 hours</span></div>
-    <div><strong>70 %</strong><span>of low-generation alerts turned out right</span></div>
-  </div>
+    <div class="facts reveal">
+      <div><strong>31,777</strong><span>hours of plant data, cleaned and checked</span></div>
+      <div><strong>1 to 48 h</strong><span>ahead, with a low, middle and high estimate</span></div>
+      <div><strong>24 %</strong><span>less error than the best simple rule, Site A at 3 hours</span></div>
+      <div><strong>7 in 10</strong><span>low-generation warnings turned out right</span></div>
+    </div>
+  </section>
 
   <section id="results">
     <h2>Does it beat the simple rules?</h2>
-    <p class="intro">Any solar forecast has two free tricks to beat first. One is to carry the last hour's cloudiness forward
-      (smart persistence). The other is to use the average for that month and hour (climatology). For each horizon, the table
-      compares our model with whichever trick did better, on test months the model never trained on.</p>
-    <div class="scroll">
-    <table>
-      <thead>
-        <tr><th></th><th colspan="3">Primary plant (Alice Springs)</th><th colspan="3" class="split">Site A (Black Sea coast)</th></tr>
-        <tr><th>Ahead</th><th>Best simple rule</th><th>Our model</th><th>Change</th><th class="split">Best simple rule</th><th>Our model</th><th>Change</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>1 hour</td><td>8.5</td><td class="ours">8.0</td><td class="gain">−5 %</td><td class="split">11.0</td><td class="ours">9.6</td><td class="gain">−13 %</td></tr>
-        <tr><td>3 hours</td><td>13.7</td><td class="ours">11.2</td><td class="gain">−18 %</td><td class="split">17.1</td><td class="ours">13.0</td><td class="gain">−24 %</td></tr>
-        <tr><td>6 hours</td><td>15.4</td><td class="ours">13.2</td><td class="gain">−14 %</td><td class="split">17.1</td><td class="ours">14.2</td><td class="gain">−17 %</td></tr>
-        <tr><td>24 hours</td><td>15.4</td><td class="ours">14.0</td><td class="gain">−9 %</td><td class="split">17.1</td><td class="ours">17.0</td><td class="flat">−1 %</td></tr>
-        <tr><td>48 hours</td><td>15.4</td><td class="ours">15.0</td><td class="flat">−2 %</td><td class="split">16.9</td><td class="ours">16.5</td><td class="flat">−2 %</td></tr>
-      </tbody>
-    </table>
+    <p class="intro">Any solar forecast has two free tricks to beat first: assume the next hours look like the last one, or use the
+      average for that month and hour. Here the model is compared with whichever trick did better, on months it never trained on.
+      Shorter bars mean smaller errors.</p>
+    <div class="toggle" role="group" aria-label="Choose plant">
+      <button aria-pressed="false" data-site="primary">Alice Springs plant</button>
+      <button aria-pressed="true" data-site="site_a">Black Sea plant</button>
     </div>
-    <p class="tablenote">Numbers are RMSE as a percentage of plant capacity, scored on daytime hours only. The model earns its keep
-      2 to 6 hours out. A day ahead it is barely better than the monthly average, because it has no weather forecast to work with.</p>
+    <div class="bars reveal" id="bars"></div>
+    <div class="keyline"><span><i style="background:#c3cfd8"></i>best simple rule</span><span><i style="background:var(--leaf)"></i>this forecaster</span></div>
+    <p class="note">Error is the typical miss as a share of plant size, on daylight hours. The model helps most 2 to 6 hours out.
+      A day ahead it is barely better than the monthly average, because it has no weather forecast to lean on.</p>
   </section>
 
   <section>
+    <figure class="photo wide-photo" style="margin-bottom:36px"><img src="assets/control-room.webp" width="1400" height="787" loading="lazy"
+      alt="A power plant control room with an operator desk, two chairs and wall panels of gauges"></figure>
     <div class="two">
       <div>
         <h2>What the operator gets</h2>
-        <p class="intro">The dashboard talks in kW and plain sentences. Model names and error metrics are kept on a separate page for analysts.</p>
+        <p class="intro">Everything is in kilowatts and plain sentences.</p>
         <dl class="pages">
-          <dt>Overview</dt><dd>Output now, the next hour, the 3-hour change and active alerts, plus one line saying where output is heading and why.</dd>
-          <dt>Alerts</dt><dd>Each alert says when, how many kW, why it fired, what to check, and how often that alert was right in testing.</dd>
-          <dt>Weather and drivers</dt><dd>Measured weather, and a plain-language note for each hour saying which inputs push the forecast up or down, and by how many kW.</dd>
-          <dt>System health</dt><dd>Data gaps, stuck meters, and the last 30 days of forecast error compared with a naive guess.</dd>
+          <dt>A one-screen overview</dt><dd>Output now, the next hour, the change over 3 hours and active alerts, with one line on where output is heading and why.</dd>
+          <dt>Alerts that explain themselves</dt><dd>When, how many kW, why it fired, what to check, and how often that alert was right before.</dd>
+          <dt>Weather and reasons</dt><dd>Measured sunlight, cloud and temperature, and which factors push each hour's forecast up or down.</dd>
+          <dt>A health check</dt><dd>Missing data, stuck meters, and how the forecast has done over the last 30 days.</dd>
         </dl>
       </div>
-      <div id="limits">
+      <div id="limits" style="scroll-margin-top:70px">
         <h2>Where it falls short</h2>
-        <p class="intro">Worth knowing before you trust it with a real grid.</p>
+        <p class="intro">Worth knowing before trusting it with a real grid.</p>
         <ul class="limits">
-          <li><b>Sudden-drop alerts miss most drops.</b> They caught 18 % of weather-driven drops at Site A and none at the primary plant. The model only sees past output, so a cloud is invisible until it arrives.</li>
-          <li><b>The likely range is too narrow.</b> It should hold the real value 80 % of the time. On test data it managed 68 to 85 %.</li>
-          <li><b>No weather forecast goes in.</b> Given the real weather for the target hour, error falls to about 2 % at the primary plant. That gap is what a proper forecast feed would be worth.</li>
-          <li><b>It is a replay, not a live system.</b> The dashboard steps through 2025–26 data. Plant locations were worked out from the data itself.</li>
+          <li><b>Most sudden drops still surprise it.</b> It caught 18 % of cloud-driven drops at the Black Sea plant and none at Alice Springs. A cloud is invisible to it until output starts to fall.</li>
+          <li><b>The likely range is a bit too narrow.</b> It should hold the real value 8 times in 10. In testing it managed 7 to 8.5.</li>
+          <li><b>No weather forecast goes in.</b> With the real weather for the hour ahead, its error at Alice Springs drops to about 2 %. That gap is the value of a good forecast feed.</li>
+          <li><b>It replays the past.</b> The dashboard steps through 2025 and 2026 data. It isn't connected to a live plant yet.</li>
         </ul>
       </div>
     </div>
   </section>
 
-  <section id="build">
-    <h2>How it's built</h2>
-    <p class="intro">Eight notebooks and a small Python package. Every step only uses data that would have existed at forecast time, and a leakage test checks that for each horizon.</p>
-    <ol class="steps">
-      <li><b>Clean</b>5-minute readings averaged to hours. Gaps under 3 hours filled, longer ones left empty, nights masked.</li>
-      <li><b>Features</b>41 inputs: recent output, sun position, clear-sky output, observed weather, time of year.</li>
-      <li><b>Baselines</b>Persistence, smart persistence, seasonal naive and climatology set the bar first.</li>
-      <li><b>Models</b>LightGBM per horizon, P10, P50 and P90, tuned with Optuna on rolling time folds.</li>
-      <li><b>Explain and alert</b>SHAP for the why. Four alert rules, each scored on precision and recall.</li>
+  <section>
+    <h2>How it works</h2>
+    <p class="intro">No step peeks at the future. Everything the forecaster uses would have been known at the moment it made the forecast.</p>
+    <ol class="steps reveal">
+      <li><b>Tidy the readings</b>Five-minute meter data averaged into hours. Short gaps filled, long gaps left empty, nights set aside.</li>
+      <li><b>Work out the sun</b>Where the sun is each hour and how much a cloudless sky would give, so clouds stand out.</li>
+      <li><b>Learn from the past</b>Recent output, the same hour yesterday, the weather so far and the time of year.</li>
+      <li><b>Give a range</b>A low, middle and high estimate for each horizon, not a single number.</li>
+      <li><b>Warn early</b>Four simple alerts, each checked against what really happened.</li>
     </ol>
-    <p class="stack">Python · pandas · pvlib · LightGBM · Optuna · SHAP · Streamlit · Plotly</p>
   </section>
 
-  <div class="cta">
-    <div>
-      <h2>Try it on a cloudy morning</h2>
-      <p>Open the dashboard, pick Site A, and step the clock through 22 March 2026 to watch the drop alert fire.</p>
-    </div>
-    <a class="btn primary" href="https://solarpowerpredictions.streamlit.app/?site=site_a&amp;t=2026-03-22T09:00Z">Open at that hour →</a>
-  </div>
+  <section id="questions">
+    <h2>Plain questions</h2>
+    <details><summary>Is this connected to a live solar plant?</summary>
+      <p>Not yet. The data ends in 2026, so the dashboard has a replay clock. You choose "now", the forecaster only sees data up to that hour, and the real output afterwards is drawn so you can judge it.</p></details>
+    <details><summary>What does the shaded band mean?</summary>
+      <p>It's the likely range. Output should land inside it about 8 times out of 10. On test data the real figure was slightly lower, so leave a little extra margin on the low side.</p></details>
+    <details><summary>Why does the dashboard take a while to open?</summary>
+      <p>It's on free hosting that sleeps after a few quiet days. The first visit wakes it up, which takes about a minute. After that it responds in a second or two.</p></details>
+    <details><summary>Which plants does it cover?</summary>
+      <p>Two: an 18 kW plant near Alice Springs in central Australia, with 26 months of data, and a 55 kW plant on the Black Sea coast with 18 months. The locations were worked out from the data itself, from when the sun peaks and how day length changes.</p></details>
+    <details><summary>Can it tell me to switch something on or off?</summary>
+      <p>No. It gives advice only. Decisions stay with the operator, and it never sends commands to the grid.</p></details>
+  </section>
 
+  <div class="cta reveal">
+    <div>
+      <h2>Try that cloudy morning yourself</h2>
+      <p>The dashboard opens straight at 11:00 on 22 March, just before the drop. Step the clock forward and watch the alert fire.</p>
+    </div>
+    <a class="btn" href="https://solarpowerpredictions.streamlit.app/?site=site_a&amp;t=2026-03-22T09:00Z">Open at that hour →</a>
+  </div>
 </main>
 
 <footer>
-  <div class="wrap">
-    <span>Solar Forecast Desk · OJT project, 2026</span>
-    <span><a href="https://solarpowerpredictions.streamlit.app/">Dashboard</a> · <a href="https://github.com/Famous077/OJT_Project">GitHub</a> · <a href="https://github.com/Famous077/OJT_Project/blob/main/models/MODEL_CARD.md">Model card</a></span>
-  </div>
+  <div class="wrap"><span>SolarCast · OJT project, 2026</span><a href="https://solarpowerpredictions.streamlit.app/">Open the dashboard</a></div>
 </footer>
+<a class="btn primary mobile-cta" id="mcta" href="https://solarpowerpredictions.streamlit.app/">Open the dashboard</a>
 
+<script>
+const DAY = {"hours":["05:00","06:00","07:00","08:00","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00"],"actual":[0.0,0.2,3.1,9.1,8.2,14.1,46.3,35.3,20.2,13.7,10.3,7.7,2.6,0.2,0.0],"clear":[0.0,0.0,7.4,18.4,28.2,35.9,40.9,42.9,41.6,37.3,30.2,20.9,10.1,0.6,0.0],"origins":{"08:00":{"fc":[["09:00",8.5,14.4,20.2],["10:00",9.3,13.1,30.9],["11:00",6.6,14.8,36.3],["12:00",7.2,12.5,36.7],["13:00",7.6,14.7,41.2],["14:00",5.8,12.1,38.9]],"alerts":{"ramp":[],"low_output":["12:00"],"low_confidence":["11:00","12:00","13:00"]}},"09:00":{"fc":[["10:00",6.9,10.4,19.9],["11:00",7.0,11.2,24.0],["12:00",6.9,13.9,33.1],["13:00",6.7,10.4,34.8],["14:00",6.8,12.9,36.7],["15:00",4.0,8.7,33.4]],"alerts":{"ramp":[],"low_output":["10:00","11:00","13:00","15:00"],"low_confidence":[]}},"10:00":{"fc":[["11:00",10.4,16.4,26.9],["12:00",10.2,17.4,34.8],["13:00",6.9,15.3,34.8],["14:00",6.3,10.6,31.8],["15:00",4.3,10.8,30.2],["16:00",2.6,7.5,21.1]],"alerts":{"ramp":[],"low_output":["14:00"],"low_confidence":["12:00"]}},"11:00":{"fc":[["12:00",21.1,40.5,46.8],["13:00",11.1,28.0,44.0],["14:00",8.0,18.8,41.5],["15:00",4.8,11.7,33.4],["16:00",3.7,7.3,23.9],["17:00",0.9,2.7,11.3]],"alerts":{"ramp":["13:00"],"low_output":["17:00"],"low_confidence":["12:00","13:00","14:00"]}},"12:00":{"fc":[["13:00",10.9,21.0,41.1],["14:00",6.4,22.9,40.4],["15:00",5.3,11.1,32.4],["16:00",2.6,7.3,23.6],["17:00",1.2,3.8,10.5],["18:00",0.1,0.6,5.5]],"alerts":{"ramp":["13:00"],"low_output":[],"low_confidence":["13:00","14:00"]}},"13:00":{"fc":[["14:00",6.3,15.0,29.4],["15:00",4.1,12.5,30.2],["16:00",2.9,7.9,22.1],["17:00",0.8,3.8,9.7],["18:00",0.1,0.2,3.1],["19:00",0.0,0.0,0.0]],"alerts":{"ramp":[],"low_output":[],"low_confidence":["14:00","15:00"]}},"14:00":{"fc":[["15:00",6.7,10.5,23.1],["16:00",3.6,9.1,23.5],["17:00",1.2,4.6,9.9],["18:00",0.2,0.4,3.4],["19:00",0.0,0.0,0.0],["20:00",0.0,0.0,0.0]],"alerts":{"ramp":[],"low_output":[],"low_confidence":[]}}}};
+const RESULTS = {
+  primary: [[1, 8.5, 8.0], [3, 13.7, 11.2], [6, 15.4, 13.2], [24, 15.4, 14.0], [48, 15.4, 15.0]],
+  site_a:  [[1, 11.0, 9.6], [3, 17.1, 13.0], [6, 17.1, 14.2], [24, 17.1, 17.0], [48, 16.9, 16.5]]
+};
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = s => document.querySelector(s);
+const NS = 'http://www.w3.org/2000/svg';
+
+/* ---------- morning demo ---------- */
+const W = 640, H = 300, L = 40, R = 14, T = 14, B = 30, YMAX = 55;
+const hrs = DAY.hours.map(h => +h.slice(0, 2));
+const X = h => L + (h - 5) / 14 * (W - L - R);
+const Y = v => T + (1 - v / YMAX) * (H - T - B);
+const line = pts => pts.map((p, i) => (i ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join(' ');
+const ORIGINS = Object.keys(DAY.origins);
+const chart = $('#chart'), sky = $('#sky'), tip = $('#tip');
+
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; }
+
+// static layer: grid, axis, clear-sky area
+for (let v = 0; v <= 50; v += 10) {
+  el('line', { x1: L, x2: W - R, y1: Y(v), y2: Y(v), class: 'grid' }, chart);
+  el('text', { x: L - 8, y: Y(v) + 4, class: 'tick', 'text-anchor': 'end' }, chart).textContent = v;
+}
+el('text', { x: 4, y: T + 4, class: 'tick' }, chart).textContent = 'kW';
+for (let h = 6; h <= 18; h += 2) el('text', { x: X(h), y: H - 8, class: 'tick', 'text-anchor': 'middle' }, chart).textContent = String(h).padStart(2, '0') + ':00';
+const clearPts = hrs.map((h, i) => [h, DAY.clear[i]]);
+el('path', { d: line(clearPts) + ` L${X(19)} ${Y(0)} L${X(5)} ${Y(0)} Z`, class: 'clear' }, chart);
+const band = el('path', { class: 'band' }, chart);
+const future = el('path', { class: 'future' }, chart);
+const past = el('path', { class: 'past' }, chart);
+const fcLine = el('path', { class: 'fc' }, chart);
+const now = el('line', { y1: T, y2: H - B, class: 'now' }, chart);
+const rampDot = el('circle', { r: 6, class: 'ramp', opacity: 0 }, chart);
+const guide = el('line', { y1: T, y2: H - B, class: 'guide', opacity: 0 }, chart);
+
+// sky strip: sun arc from sunrise to sunset, sun position follows the clock
+el('path', { d: `M${X(6.7)} 80 Q ${X(12.5)} -38 ${X(18.3)} 80`, fill: 'none', stroke: '#cdd9e2', 'stroke-dasharray': '3 6', 'stroke-width': 1.5 }, sky);
+el('line', { x1: 0, x2: W, y1: 80, y2: 80, stroke: '#c3cfd8' }, sky);
+const sunG = el('g', {}, sky);
+const halo = el('circle', { r: 20, fill: '#e39b2f', opacity: .2 }, sunG);
+const sun = el('circle', { r: 11, fill: '#e39b2f' }, sunG);
+const cloud = el('path', { d: 'M-22 6c0-8 6-14 14-14 6 0 11 3 13 8 1-.5 3-1 5-1 7 0 12 5 12 12H-22z', fill: '#ffffff', stroke: '#b9c7d2', 'stroke-width': 1.3 }, sunG);
+function sunXY(h) { const t = (h - 6.7) / (18.3 - 6.7); const x = X(6.7) + t * (X(18.3) - X(6.7)); const y = 80 - 4 * t * (1 - t) * 59; return [x, y]; }
+
+function skyWord(r) { return r > 0.85 ? ['sunny', '#f7ead0', '#7a4f10'] : r > 0.5 ? ['broken cloud', '#e2edf1', '#2d5466'] : ['overcast', '#e6e2da', '#4a4a44']; }
+
+function render(k) {
+  const o = ORIGINS[k], oh = +o.slice(0, 2), oi = hrs.indexOf(oh), d = DAY.origins[o];
+  const nowKw = DAY.actual[oi], ratio = DAY.clear[oi] > 1 ? nowKw / DAY.clear[oi] : 0;
+  const fc = d.fc.map(f => [+f[0].slice(0, 2), f[1], f[2], f[3]]);
+  past.setAttribute('d', line(hrs.slice(0, oi + 1).map((h, i) => [h, DAY.actual[i]])));
+  future.setAttribute('d', line(hrs.slice(oi).map((h, i) => [h, DAY.actual[oi + i]])));
+  fcLine.setAttribute('d', line([[oh, nowKw], ...fc.map(f => [f[0], f[2]])]));
+  band.setAttribute('d', line([[oh, nowKw], ...fc.map(f => [f[0], f[3]])]) + ' ' +
+    [...fc].reverse().map(f => `L${X(f[0]).toFixed(1)} ${Y(f[1]).toFixed(1)}`).join(' ') + ` L${X(oh)} ${Y(nowKw)} Z`);
+  now.setAttribute('x1', X(oh)); now.setAttribute('x2', X(oh));
+  if (d.alerts.ramp.length) { const rh = +d.alerts.ramp[0].slice(0, 2); const f = fc.find(x => x[0] === rh);
+    rampDot.setAttribute('cx', X(rh)); rampDot.setAttribute('cy', Y(f[2])); rampDot.setAttribute('opacity', 1); }
+  else rampDot.setAttribute('opacity', 0);
+
+  const [sx, sy] = sunXY(oh); sunG.setAttribute('transform', `translate(${sx} ${sy})`);
+  cloud.setAttribute('opacity', ratio > 0.85 ? 0 : 1); cloud.setAttribute('transform', ratio > 0.5 ? 'translate(10 4) scale(.8)' : 'translate(-2 0) scale(1.15)');
+  sun.setAttribute('opacity', ratio > 0.5 ? 1 : .55); halo.setAttribute('opacity', ratio > 0.85 ? .22 : .08);
+
+  const [word, bg, fg] = skyWord(ratio), in3 = fc[2][2];
+  $('#rClock').textContent = o;
+  const s = $('#rSky'); s.textContent = word; s.style.background = bg; s.style.color = fg;
+  $('#rNow').textContent = nowKw.toFixed(1) + ' kW';
+  $('#rNext').textContent = in3.toFixed(1) + ' kW';
+  const ch = in3 - nowKw;
+  $('#rSay').textContent = Math.abs(ch) < 3 ? `Expect output to hold near ${nowKw.toFixed(0)} kW.`
+    : ch < 0 ? `Expect a fall of ${(-ch).toFixed(0)} kW by ${fc[2][0]}:00.` : `Expect a rise of ${ch.toFixed(0)} kW by ${fc[2][0]}:00.`;
+  const chips = [];
+  if (d.alerts.ramp.length) chips.push(['ramp', 'Sudden drop', 'expected around ' + d.alerts.ramp[0]]);
+  if (d.alerts.low_output.length) chips.push(['low', 'Low generation', 'at ' + d.alerts.low_output.slice(0, 3).join(', ')]);
+  if (d.alerts.low_confidence.length) chips.push(['unsure', 'Less certain than usual', 'at ' + d.alerts.low_confidence.slice(0, 3).join(', ')]);
+  if (!chips.length) chips.push(['none', 'No alerts', 'for the next 6 hours']);
+  $('#rChips').innerHTML = chips.map(c => `<div class="chip ${c[0]}"><b>${c[1]}</b>${c[2]}</div>`).join('');
+  current = k;
+}
+
+let current = 3, timer = null;
+const slider = $('#clock');
+slider.addEventListener('input', () => { stop(); render(+slider.value); });
+function stop() { clearInterval(timer); timer = null; $('#playIcon').innerHTML = '<path d="M2 1l7 4-7 4z"/>'; }
+$('#play').addEventListener('click', () => {
+  if (timer) return stop();
+  $('#playIcon').innerHTML = '<path d="M2 1h2.2v8H2zM5.8 1H8v8H5.8z"/>';
+  let k = current >= 6 ? 0 : current; slider.value = k; render(k);
+  timer = setInterval(() => { k++; if (k > 6) return stop(); slider.value = k; render(k); }, 1300);
+});
+
+// hover / touch readout for any hour
+function hover(evt) {
+  const box = chart.getBoundingClientRect(), p = evt.touches ? evt.touches[0] : evt;
+  const vx = (p.clientX - box.left) / box.width * W;
+  const h = Math.round(5 + (vx - L) / (W - L - R) * 14);
+  if (h < 5 || h > 19) return hideTip();
+  const i = hrs.indexOf(h), o = DAY.origins[ORIGINS[current]], oh = +ORIGINS[current].slice(0, 2);
+  const f = o.fc.find(x => +x[0].slice(0, 2) === h);
+  let html = `<div>${String(h).padStart(2, '0')}:00</div>`;
+  if (h <= oh) html += `<div>measured <b>${DAY.actual[i].toFixed(1)} kW</b></div>`;
+  if (f) html += `<div>forecast <b>${f[2].toFixed(1)} kW</b> (${f[1].toFixed(0)} to ${f[3].toFixed(0)})</div><div>what happened <b>${DAY.actual[i].toFixed(1)} kW</b></div>`;
+  html += `<div style="opacity:.7">clear sky <b>${DAY.clear[i].toFixed(1)} kW</b></div>`;
+  tip.innerHTML = html;
+  tip.style.left = (X(h) / W * box.width) + 'px';
+  tip.style.top = (Y(Math.max(DAY.actual[i], f ? f[3] : 0, 8)) / H * box.height) + 'px';
+  tip.style.opacity = 1;
+  guide.setAttribute('x1', X(h)); guide.setAttribute('x2', X(h)); guide.setAttribute('opacity', .5);
+}
+function hideTip() { tip.style.opacity = 0; guide.setAttribute('opacity', 0); }
+chart.addEventListener('mousemove', hover); chart.addEventListener('mouseleave', hideTip);
+chart.addEventListener('touchstart', hover, { passive: true }); chart.addEventListener('touchmove', hover, { passive: true });
+chart.addEventListener('touchend', () => setTimeout(hideTip, 1600));
+render(3);
+
+/* ---------- results bars ---------- */
+function bars(site) {
+  const max = 18;
+  $('#bars').innerHTML = RESULTS[site].map(([h, b, m]) => {
+    const g = Math.round((1 - m / b) * 100);
+    return `<div class="row"><span class="h">${h} hour${h > 1 ? 's' : ''}</span>
+      <div class="pair"><div class="base" style="width:0" data-w="${b / max * 82}"><small>${b.toFixed(1)} %</small></div>
+      <div class="ours" style="width:0" data-w="${m / max * 82}"><small>${m.toFixed(1)} %</small></div></div>
+      <span class="gain ${g >= 5 ? 'good' : 'flat'}">−${g} %</span></div>`;
+  }).join('');
+  requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('.pair div').forEach(d => d.style.width = d.dataset.w + '%')));
+}
+document.querySelectorAll('.toggle button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.toggle button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  bars(b.dataset.site);
+}));
+bars('site_a');
+
+/* ---------- small UX touches ---------- */
+const header = $('header'), mcta = $('#mcta');
+addEventListener('scroll', () => {
+  header.classList.toggle('scrolled', scrollY > 8);
+  mcta.classList.toggle('show', scrollY > 600 && innerHeight + scrollY < document.body.scrollHeight - 160);
+}, { passive: true });
+if (!reduce && 'IntersectionObserver' in window) {
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+  document.querySelectorAll('.reveal').forEach(e => io.observe(e));
+} else document.querySelectorAll('.reveal').forEach(e => e.classList.add('in'));
+</script>
 </body>
 </html>

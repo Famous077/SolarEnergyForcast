@@ -1,22 +1,20 @@
 import streamlit as st
 
 from components.charts import forecast_chart
-from components.ui import alert_card, pills, tile
+from components.ui import alert_card, banner, pills, tile
 from services import SITE_NAMES, alert_cards, interval_hit_rate, situation
 
 ctx = st.session_state.ctx
 fc, now, prev, cap, tz = ctx["fc"], ctx["now"], ctx["prev_fc"], ctx["cap"], ctx["tz"]
 cards = alert_cards(ctx)
 
-head, status = st.columns([3, 2])
-head.title(SITE_NAMES[ctx["site"]])
-with status:
-    h = ctx["health"]
-    data_ok = h["hours_since_data"] <= 1 and not h["missing_day_hours_24h"]
-    drift = fc["drift"].any()
-    pills([("REPLAY", "info"), ("DATA OK" if data_ok else "DATA GAP", "ok" if data_ok else "warn"),
-           ("MODEL DRIFT" if drift else "MODEL OK", "warn" if drift else "ok")])
-    st.caption(f"Data up to {ctx['origin'].tz_convert(tz):%d %b %H:%M} plant time · capacity {cap:.0f} kW")
+banner("banner-overview.webp", SITE_NAMES[ctx["site"]],
+       f"Data up to {ctx['origin'].tz_convert(tz):%a %d %b %Y, %H:%M} plant time · capacity {cap:.0f} kW")
+h = ctx["health"]
+data_ok = h["hours_since_data"] <= 1 and not h["missing_day_hours_24h"]
+drift = fc["drift"].any()
+pills([("REPLAY", "info"), ("DATA OK" if data_ok else "DATA GAP", "ok" if data_ok else "warn"),
+       ("MODEL DRIFT" if drift else "MODEL OK", "warn" if drift else "ok")])
 
 # --- four numbers an operator checks first
 now_kw = now["power_kw"]

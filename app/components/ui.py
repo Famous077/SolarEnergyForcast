@@ -39,3 +39,9 @@ def pills(items: list[tuple[str, str]]):
 
 def note(text: str):
     st.markdown(f"<div class='note'>{text}</div>", unsafe_allow_html=True)
+
+
+def banner(image: str, title: str, subtitle: str = ""):
+    """Slim photo banner for the top of a page. Only text sits on the photo, never data or alerts."""
+    st.markdown(f"""<div class="banner" style="background-image:linear-gradient(90deg,rgba(15,23,34,.88) 0%,rgba(15,23,34,.55) 55%,rgba(15,23,34,.15) 100%),url('app/static/{image}')">
+<div class="banner-title">{escape(title)}</div><div class="banner-sub">{escape(subtitle)}</div></div>""", unsafe_allow_html=True)

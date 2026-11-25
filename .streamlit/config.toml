@@ -7,3 +7,6 @@ textColor = "#e6edf3"
 
 [client]
 toolbarMode = "minimal"
+
+[server]
+enableStaticServing = true   # serves app/static/ (banner photos) at /app/static/

@@ -15,7 +15,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from components.ui import load_css  # noqa: E402
 from services import SITE_NAMES, SITES, data, get_context, pipeline  # noqa: E402
 
-st.set_page_config(page_title="Solar forecast desk", page_icon="☀", layout="wide")
+STATIC = Path(__file__).resolve().parent / "static"
+st.set_page_config(page_title="SolarCast", page_icon=str(STATIC / "logo-mark.png"), layout="wide")
+st.logo(str(STATIC / "logo-mark.png"), size="large")
 load_css()
 
 pipe = pipeline()
